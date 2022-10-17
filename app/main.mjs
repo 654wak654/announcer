@@ -137,7 +137,7 @@ try {
 // Add/update commands
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-await rest.put(Routes.applicationCommands('1030427278640943164'), { body: commands });
+await rest.put(Routes.applicationCommands('1030427278640943164'), { body: commands.map(({ _func, ...c }) => c) });
 
 // Start chat bot
 const client = new Client({
