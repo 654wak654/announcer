@@ -13,6 +13,8 @@
         "node": ">=16"
     },
     "dependencies": {
+        "date-fns": "^2.29.3",
+        "date-fns-tz": "^1.3.7",
         "discord.js": "^14.6.0",
         "dotenv": "^16.0.3",
         "googleapis": "^108.0.0",
