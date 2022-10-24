@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 
 import cron from 'node-cron';
+import dateFnsTz from 'date-fns-tz';
 import dotenv from 'dotenv';
 import { getWeek } from 'date-fns';
-import dateFnsTz from 'date-fns-tz';
 import {
     ApplicationCommandOptionType,
     Client,
