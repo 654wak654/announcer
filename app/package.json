@@ -1,7 +1,7 @@
 {
     "name": "@654wak654/announcer",
     "description": "Discord announcer bot",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "author": "654wak654",
     "license": "UNLICENSED",
     "type": "module",

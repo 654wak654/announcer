@@ -28,11 +28,11 @@ async function setData(data) {
     await saveDB();
     await refresh();
 
-    return `Set Google sheet ID to ${db.sheetID}, tz to ${db.tz}, and refreshed schedule.`;
+    return `Set Google sheet ID to \`${db.sheetID}\`, time zone to \`${db.tz}\`, and refreshed schedule.`;
 }
 
 function getData() {
-    return `Current Google sheet ID is ${db.sheetID}, tz is ${db.tz}.`;
+    return `Current Google sheet ID is \`${db.sheetID}\`, time zone is \`${db.tz}\`.`;
 }
 
 async function refresh() {
@@ -173,6 +173,9 @@ try {
     db = { tz: 'Europe/Amsterdam' };
 }
 
+// Get list of admin roles
+const adminRoles = process.env.ADMIN_ROLE_IDS.split(',');
+
 // Add/update commands
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
@@ -183,12 +186,31 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMembers,
         GatewayIntentBits.MessageContent
     ]
 });
 
 client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) {
+        return;
+    }
+
+    if (interaction.guildId !== process.env.GUILD_ID) {
+        await interaction.reply(`You can\'t run commands from this guild, the bot has been configured for \`${process.env.GUILD_ID}\` only!`);
+        return;
+    }
+
+    let hasPermission = false;
+    for (const role of interaction.member.roles.cache.keys()) {
+        if (adminRoles.includes(role)) {
+            hasPermission = true;
+            break;
+        }
+    }
+
+    if (!hasPermission) {
+        await interaction.reply('You don\'t have permission to run commands!');
         return;
     }
 
