@@ -120,9 +120,9 @@ function runAnnouncements(now) {
             continue;
         }
 
-        const announcementDate = dateFnsTz.utcToZonedTime(new Date(`${date}T${time}:00Z`), db.tz);
+        const announcementTime = dateFnsTz.utcToZonedTime(new Date(`${date}T${time}:00Z`), db.tz).getTime() - dateFnsTz.getTimezoneOffset(db.tz);
 
-        if (announcementDate.getTime() !== zonedTime.getTime()) {
+        if (announcementTime !== zonedTime.getTime()) {
             continue;
         }
 
