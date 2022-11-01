@@ -1,9 +1,9 @@
 {
     "name": "@654wak654/announcer",
     "description": "Discord announcer bot",
-    "version": "0.0.3",
+    "version": "1.0.0",
     "author": "654wak654",
-    "license": "UNLICENSED",
+    "license": "GPL-3.0-only",
     "type": "module",
     "scripts": {
         "dev": "node --inspect main.mjs",
@@ -17,7 +17,7 @@
         "date-fns-tz": "^1.3.7",
         "discord.js": "^14.6.0",
         "dotenv": "^16.0.3",
-        "googleapis": "^108.0.0",
+        "googleapis": "^109.0.0",
         "node-cron": "^3.0.2"
     }
 }
