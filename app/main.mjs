@@ -59,7 +59,7 @@ async function refresh() {
     return `Refreshed list with ${recurringAnnouncements.length} recurring and ${scheduledAnnouncements.length} scheduled announcements.`;
 }
 
-async function sendAnnouncement(channelName, message) {
+async function sendAnnouncement(channelName, message, now) {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
 
     const channel = guild.channels.cache.find(c => c.name === channelName);
@@ -110,7 +110,7 @@ function runAnnouncements(now) {
                 continue;
         }
 
-        sendAnnouncement(channel, message).catch(err => console.error(`[${now.toISOString()}] ${err}`));
+        sendAnnouncement(channel, message, now).catch(err => console.error(`[${now.toISOString()}] ${err}`));
     }
 
     for (const scheduledAnnouncement of scheduledAnnouncements) {
@@ -126,7 +126,7 @@ function runAnnouncements(now) {
             continue;
         }
 
-        sendAnnouncement(channel, message).catch(err => console.error(`[${now.toISOString()}] ${err}`));
+        sendAnnouncement(channel, message, now).catch(err => console.error(`[${now.toISOString()}] ${err}`));
     }
 }
 
