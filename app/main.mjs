@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 
 import cron from 'node-cron';
-import dateFnsTz from 'date-fns-tz';
 import dotenv from 'dotenv';
 import { getWeek } from 'date-fns';
+import { getTimezoneOffset, utcToZonedTime } from 'date-fns-tz';
 import {
     ApplicationCommandOptionType,
     Client,
@@ -77,7 +77,7 @@ function runAnnouncements(now) {
     // Make sure now is floored to the last minute
     now.setSeconds(0, 0);
 
-    const zonedTime = dateFnsTz.utcToZonedTime(now, db.tz);
+    const zonedTime = utcToZonedTime(now, db.tz);
     const currentTime = zonedTime.toTimeString().slice(0, 5);
     const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][zonedTime.getDay()];
     const currentWeek = getWeek(zonedTime, { weekStartsOn: 1, firstWeekContainsDate: 7 });
@@ -120,7 +120,7 @@ function runAnnouncements(now) {
             continue;
         }
 
-        const announcementTime = dateFnsTz.utcToZonedTime(new Date(`${date}T${time}:00Z`), db.tz).getTime() - dateFnsTz.getTimezoneOffset(db.tz);
+        const announcementTime = utcToZonedTime(new Date(`${date}T${time}:00Z`), db.tz).getTime() - getTimezoneOffset(db.tz);
 
         if (announcementTime !== zonedTime.getTime()) {
             continue;
