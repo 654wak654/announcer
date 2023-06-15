@@ -62,10 +62,16 @@ async function refresh() {
 async function sendAnnouncement(channelName, message, now) {
     const guild = await client.guilds.fetch(process.env.GUILD_ID);
 
-    const channel = guild.channels.cache.find(c => c.name === channelName);
+    // Search with channel name first
+    let channel = guild.channels.cache.find(c => c.name === channelName);
 
     if (!channel) {
-        throw new Error(`Couldn't find channel ${channel}!`);
+        // Then search with channel ID if name didn't work
+        channel = guild.channels.cache.find(c => c.id === channelName);
+
+        if (!channel) {
+            throw new Error(`Couldn't find channel ${channel}!`);
+        }
     }
 
     await channel.send(message);
