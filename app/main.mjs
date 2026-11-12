@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 
-import cron from 'node-cron';
+import { Cron } from 'croner';
 import dotenv from 'dotenv';
-import { getWeek } from 'date-fns';
-import { getTimezoneOffset, utcToZonedTime } from 'date-fns-tz';
+import { format, getWeek } from 'date-fns';
+import { tz } from '@date-fns/tz';
 import {
     ApplicationCommandOptionType,
     Client,
@@ -23,7 +23,7 @@ async function saveDB() {
 
 async function setData(data) {
     db.sheetID = data[0].value.trim();
-    db.tz = (data[1].value ?? 'Europe/Amsterdam').trim();
+    db.tz = (data[1]?.value ?? 'Europe/Amsterdam').trim();
 
     await saveDB();
     await refresh();
@@ -53,8 +53,8 @@ async function refresh() {
     recurringAnnouncements.length = 0;
     scheduledAnnouncements.length = 0;
 
-    recurringAnnouncements.push(...recurringRes.data.values.slice(1));
-    scheduledAnnouncements.push(...scheduledRes.data.values.slice(1));
+    recurringAnnouncements.push(...(recurringRes.data.values?.slice(1) ?? []));
+    scheduledAnnouncements.push(...(scheduledRes.data.values?.slice(1) ?? []));
 
     return `Refreshed list with ${recurringAnnouncements.length} recurring and ${scheduledAnnouncements.length} scheduled announcements.`;
 }
@@ -70,28 +70,35 @@ async function sendAnnouncement(channelName, message, now) {
         channel = guild.channels.cache.find(c => c.id === channelName);
 
         if (!channel) {
-            throw new Error(`Couldn't find channel ${channel}!`);
+            const channels = await guild.channels.fetch();
+            channel = channels.find(c => c?.name === channelName || c?.id === channelName);
+
+            if (!channel) {
+                throw new Error(`Couldn't find channel ${channelName}!`);
+            }
         }
     }
 
     await channel.send(message);
 
-    console.log(`[${now.toISOString()}] Sent announcement (${message}`);
+    console.log(`[${now.toISOString()}] Sent announcement (${message})`);
 }
 
-function runAnnouncements(now) {
+function runAnnouncements(job) {
+    const now = new Date(job.currentRun());
     // Make sure now is floored to the last minute
     now.setSeconds(0, 0);
 
-    const zonedTime = utcToZonedTime(now, db.tz);
-    const currentTime = zonedTime.toTimeString().slice(0, 5);
-    const currentDay = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][zonedTime.getDay()];
-    const currentWeek = getWeek(zonedTime, { weekStartsOn: 1, firstWeekContainsDate: 7 });
+    const inTz = { in: tz(db.tz) };
+    const currentDate = format(now, 'yyyy-MM-dd', inTz);
+    const currentTime = format(now, 'HH:mm', inTz);
+    const currentDay = format(now, 'EEEE', inTz).toLowerCase();
+    const currentWeek = getWeek(now, { weekStartsOn: 1, firstWeekContainsDate: 7, ...inTz });
 
     for (const recurringAnnouncement of recurringAnnouncements) {
         const [recurrence, day, time, channel, message, approved] = recurringAnnouncement;
 
-        if (approved !== 'TRUE' || currentDay != day.toLowerCase() || currentTime != time) {
+        if (approved !== 'TRUE' || currentDay !== day?.toLowerCase() || currentTime !== time) {
             continue;
         }
 
@@ -122,13 +129,7 @@ function runAnnouncements(now) {
     for (const scheduledAnnouncement of scheduledAnnouncements) {
         const [date, time, channel, message, approved] = scheduledAnnouncement;
 
-        if (approved !== 'TRUE') {
-            continue;
-        }
-
-        const announcementTime = utcToZonedTime(new Date(`${date}T${time}:00Z`), db.tz).getTime() - getTimezoneOffset(db.tz);
-
-        if (announcementTime !== zonedTime.getTime()) {
+        if (approved !== 'TRUE' || currentDate !== date || currentTime !== time) {
             continue;
         }
 
@@ -190,10 +191,7 @@ await rest.put(Routes.applicationCommands('1030427278640943164'), { body: comman
 // Start chat bot
 const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.Guilds
     ]
 });
 
@@ -208,7 +206,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     let hasPermission = false;
-    for (const role of interaction.member.roles.cache.keys()) {
+    const memberRoles = Array.isArray(interaction.member.roles)
+        ? interaction.member.roles
+        : interaction.member.roles.cache.keys();
+    for (const role of memberRoles) {
         if (adminRoles.includes(role)) {
             hasPermission = true;
             break;
@@ -239,11 +240,16 @@ client.login(process.env.DISCORD_TOKEN);
 console.log(`[${(new Date()).toISOString()}] ${await refresh()}`);
 
 // Refresh announcements list every hour
-cron.schedule('0 * * * *', async now => {
-    const message = await refresh();
+new Cron('0 * * * *', async job => {
+    const now = job.currentRun();
+    try {
+        const message = await refresh();
 
-    console.log(`[${now.toISOString()}] ${message}`);
+        console.log(`[${now.toISOString()}] ${message}`);
+    } catch (err) {
+        console.error(`[${now.toISOString()}] ${err}`);
+    }
 });
 
 // Run announcements every minute
-cron.schedule('* * * * *', runAnnouncements);
+new Cron('* * * * *', runAnnouncements);

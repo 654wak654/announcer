@@ -1,4 +1,4 @@
-.env
-.example.env
-db.json
-node_modules
+**/node_modules
+**/.env
+**/.example.env
+**/db.json
