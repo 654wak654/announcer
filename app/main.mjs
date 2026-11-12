@@ -226,15 +226,20 @@ client.on(Events.InteractionCreate, async interaction => {
             continue;
         }
 
-        const reply = await command._func(interaction.options.data);
-
-        await interaction.reply(reply);
+        await interaction.deferReply();
+        try {
+            const reply = await command._func(interaction.options.data);
+            await interaction.editReply(reply);
+        } catch (err) {
+            console.error(err);
+            await interaction.editReply(`Command failed: \`${err.message ?? err}\``);
+        }
 
         break;
     }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+await client.login(process.env.DISCORD_TOKEN);
 
 // Initial refresh
 console.log(`[${(new Date()).toISOString()}] ${await refresh()}`);
